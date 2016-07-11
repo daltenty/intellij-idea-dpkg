@@ -68,6 +68,11 @@ OPTIONS
     automatically find and download the latest EAP build of IDEA 14 from
     http://confluence.jetbrains.net/display/IDEADEV/IDEA+14+EAP
 
+* '-d <directory>'
+
+    Set the root directory for downloading and building the package. Defaults
+    to the current directory.
+
 SOLARIS
 -------
 

@@ -8,6 +8,9 @@ umask=022
 
 uname_s=$(uname -s)
 
+
+
+
 usage() {
   echo "usage: $0 OPTIONS" >&2
   echo "Use $0 -? for usage help" >&2
@@ -33,17 +36,6 @@ detect_platform() {
 find_latest() {
   if [ "$IDEA_URL" = "" ]
   then
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+X+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+10.5+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+11.1+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+12+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+12.1+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+13+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+13.1+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+14+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+14.1+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+15+EAP"
-#    IDEA_URL="http://confluence.jetbrains.net/display/IDEADEV/IDEA+16+EAP"
     IDEA_URL="https://confluence.jetbrains.com/display/IDEADEV/IDEA+2016.1+EAP"
   fi
 
@@ -66,41 +58,41 @@ find_latest() {
 }
 
 build_common() {
-  rm -rf root
+  rm -rf $ROOT_PKG_DIR
   if [ ! -z "$src_dir" ]
   then
     echo "Copying IDEA from $src_dir"
-    mkdir -p root/usr/share/jetbrains
-    cp -r "$src_dir" root/usr/share/jetbrains/intellij-idea
+    mkdir -p $ROOT_PKG_DIR/usr/share/jetbrains
+    cp -r "$src_dir" $ROOT_PKG_DIR/usr/share/jetbrains/intellij-idea
   else
     echo "Unpacking tarball"
-    mkdir -p root/usr/share/jetbrains/intellij-idea
-    $tar --strip-components 1 -C root/usr/share/jetbrains/intellij-idea -zxf download/$filename
+    mkdir -p $ROOT_PKG_DIR/usr/share/jetbrains/intellij-idea
+    $tar --strip-components 1 -C $ROOT_PKG_DIR/usr/share/jetbrains/intellij-idea -zxf $DOWNLOAD_DIR/$filename
   fi
-  mkdir -p root/usr/bin
+  mkdir -p $ROOT_PKG_DIR/usr/bin
 
-  cp idea.in root/usr/bin/idea
-  chmod +rx root/usr/bin/idea
+  cp idea.in $ROOT_PKG_DIR/usr/bin/idea
+  chmod +rx $ROOT_PKG_DIR/usr/bin/idea
 
-  mkdir -p root/usr/share/applications
+  mkdir -p $ROOT_PKG_DIR/usr/share/applications
   if [ "$FLAVOR_LOWER" == "ic" ]
   then
     # IC version has different icon name
-    sed 's|/idea128\.png$|/idea_CE128.png|' intellij-idea.desktop > root/usr/share/applications/intellij-idea.desktop
+    sed 's|/idea128\.png$|/idea_CE128.png|' intellij-idea.desktop > $ROOT_PKG_DIR/usr/share/applications/intellij-idea.desktop
   else
-    cp intellij-idea.desktop root/usr/share/applications/intellij-idea.desktop
+    cp intellij-idea.desktop $ROOT_PKG_DIR/usr/share/applications/intellij-idea.desktop
   fi
 
-  mkdir -p root/etc/intellij-idea
-  cp idea.vmoptions.README root/etc/intellij-idea/
+  mkdir -p $ROOT_PKG_DIR/etc/intellij-idea
+  cp idea.vmoptions.README $ROOT_PKG_DIR/etc/intellij-idea/
   echo "
 Original idea.vmoptions:
-" >> root/etc/intellij-idea/idea.vmoptions.README
-  cat root/usr/share/jetbrains/intellij-idea/bin/idea.vmoptions >> root/etc/intellij-idea/idea.vmoptions.README
+" >> $ROOT_PKG_DIR/etc/intellij-idea/idea.vmoptions.README
+  cat $ROOT_PKG_DIR/usr/share/jetbrains/intellij-idea/bin/idea.vmoptions >> $ROOT_PKG_DIR/etc/intellij-idea/idea.vmoptions.README
 
   fn=/tmp/idea.vmoptions.$$
-  cp root/usr/share/jetbrains/intellij-idea/bin/idea.vmoptions $fn
-  cat $fn | grep -v yjpagent > root/usr/share/jetbrains/intellij-idea/bin/idea.vmoptions
+  cp $ROOT_PKG_DIR/usr/share/jetbrains/intellij-idea/bin/idea.vmoptions $fn
+  cat $fn | grep -v yjpagent > $ROOT_PKG_DIR/usr/share/jetbrains/intellij-idea/bin/idea.vmoptions
   rm $fn
 
   # If idea.license is provided in the bin directory of intellij-idea, this
@@ -161,11 +153,11 @@ build_solaris() {
 build_debian() {
   build_common
 
-  mkdir -p root/etc/sysctl.d
-  cp debian/sysctl-99-intellij.conf root/etc/sysctl.d/99-intellij.conf
-  chmod +rx root/usr/bin/idea
+  mkdir -p $ROOT_PKG_DIR/etc/sysctl.d
+  cp debian/sysctl-99-intellij.conf $ROOT_PKG_DIR/etc/sysctl.d/99-intellij.conf
+  chmod +rx $ROOT_PKG_DIR/usr/bin/idea
 
-  mkdir -p root/DEBIAN
+  mkdir -p $ROOT_PKG_DIR/DEBIAN
 
   sed \
     -e "s,OTHER_FLAVOR_LOWER,$OTHER_FLAVOR_LOWER," \
@@ -173,15 +165,15 @@ build_debian() {
     -e "s,FLAVOR_LOWER,$FLAVOR_LOWER," \
     -e "s,FLAVOR,$flavor," \
     -e "s,VERSION,$version," \
-    debian/control.in > root/DEBIAN/control
+    debian/control.in > $ROOT_PKG_DIR/DEBIAN/control
 
-  cp debian/postinst root/DEBIAN/postinst
-  chmod +rx root/DEBIAN/postinst
+  cp debian/postinst $ROOT_PKG_DIR/DEBIAN/postinst
+  chmod +rx $ROOT_PKG_DIR/DEBIAN/postinst
 
   echo > debian/fakeroot.save
   FAKEROOT="fakeroot -i debian/fakeroot.save -s debian/fakeroot.save"
-  $FAKEROOT -- chown -R root:root root/
-  $FAKEROOT -- dpkg-deb -b root $package_filename
+  $FAKEROOT -- chown -R root:root $ROOT_PKG_DIR
+  $FAKEROOT -- dpkg-deb -v -b $ROOT_PKG_DIR $package_filename
   rm debian/fakeroot.save
 
   if [ "$update_repository" = 1 ]
@@ -201,7 +193,7 @@ then
   fi
 fi
 
-while getopts "f:Fp:s:v:u?" flag
+while getopts "f:Fp:s:v:u?d:" flag
 do
   case "$flag" in
     s)
@@ -232,12 +224,23 @@ do
     F)
       force="true"
       ;;
+    d)
+      PKG_DIR=$OPTARG
+      ;;
     ?)
       less README.md
       exit 0
       ;;
   esac
 done
+
+if [ -z "$PKG_DIR" ]
+then
+  PKG_DIR=./
+fi
+
+ROOT_PKG_DIR=$PKG_DIR/root
+DOWNLOAD_DIR=$PKG_DIR/download
 
 if [ -z "$platform" ]
 then
@@ -313,7 +316,7 @@ fi
 
 if [ -z "$src_dir" ]
 then
-  mkdir -p download
+  mkdir -p $DOWNLOAD_DIR
 
   # It would be possible to use the MD5 sum as a check here, then there would be no need to every force a download
   #if [ -r "download/$filename" ]
@@ -325,15 +328,15 @@ then
   #fi
 
   echo "Downloading version $version..."
-  if [ `wget -q -P download -N $url; echo $?` != "0" ]
+  if [ `wget -q -P $DOWNLOAD_DIR -N $url; echo $?` != "0" ]
   then
     echo "Could not download $url" >&2
     exit 1
   fi
 
-  if [ ! -r download/$filename ]
+  if [ ! -r $DOWNLOAD_DIR/$filename ]
   then
-    echo "wget didn't place the downloaded file where expected: download/$filename" >&2
+    echo "wget didn't place the downloaded file where expected: $DOWNLOAD_DIR/$filename" >&2
     exit 1
   fi
 fi
